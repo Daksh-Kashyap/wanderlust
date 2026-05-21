@@ -4,12 +4,12 @@ module.exports.renderSignUpForm = (req, res) => {
   res.render("./user/signup.ejs");
 };
 
-module.exports.signUp = async (req, res) => {
+module.exports.signUp = async (req, res, next) => {
   try {
     let { username, email, password } = req.body;
     const newUser = new User({ email, username });
-    const regiteredUser = await User.register(newUser, password);
-    req.login(regiteredUser, (err) => {
+    const registeredUser = await User.register(newUser, password);
+    req.login(registeredUser, (err) => {
       if (err) {
         return next(err);
       }
@@ -37,7 +37,7 @@ module.exports.logout = (req, res, next) => {
     if (err) {
       next(err);
     }
-    req.flash("sucess", "you are loggedd out now");
+    req.flash("success", "you are logged out now");
     res.redirect("/listings");
   });
 };
