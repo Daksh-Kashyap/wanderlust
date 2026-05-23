@@ -48,14 +48,14 @@ const store = MongoStore.create({
   },
   touchAfter: 24 * 3600,
 });
-store.on("error", () => {
+store.on("error", (err) => {
   console.log("ERROR in MONGO SESSION STORE", err);
 });
 const sessionOption = {
   store,
   secret: process.env.SECRET,
-  resave: "false",
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   cookie: {
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -99,6 +99,8 @@ app.use((err, req, res, next) => {
   res.status(statusCode).render("./listings/error.ejs", { message });
 });
 
-app.listen(8080, (req, res) => {
-  console.log(`server is listening to port 8080`);
+const port = process.env.PORT || 8080;
+
+app.listen(port, () => {
+  console.log(`server is listening to port ${port}`);
 });
