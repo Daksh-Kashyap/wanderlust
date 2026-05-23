@@ -1,7 +1,59 @@
 const Listing = require("../models/listing");
+const ExpressError = require("../utils/ExpressError");
+
+const defaultGeometry = () => ({
+  type: "Point",
+  coordinates: [0, 0],
+});
+
+const geocodeLocation = async (location) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`,
+      {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "wanderlust-app/1.0",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new ExpressError(502, "Could not geocode this location right now");
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new ExpressError(400, "Could not find coordinates for this location");
+    }
+
+    const lat = parseFloat(data[0].lat);
+    const lon = parseFloat(data[0].lon);
+
+    return {
+      type: "Point",
+      coordinates: [lon, lat],
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const getListingGeometry = async (location) => {
+  try {
+    return await geocodeLocation(location);
+  } catch (err) {
+    console.error(`Geocoding failed for "${location}": ${err.message}`);
+    return defaultGeometry();
+  }
+};
+
 
 module.exports.index = async (req, res) => {
-  const allListings = await Listing.find({});
+  const allListings = await Listing.find({}).sort({ _id: -1 });
   res.render("./listings/index.ejs", { allListings });
 };
 
@@ -27,6 +79,7 @@ module.exports.showListing = async (req, res) => {
 };
 
 module.exports.createListings = async (req, res) => {
+<<<<<<< HEAD
   // Geocoding using OpenStreetMap (Nominatim)
   const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(req.body.listing.location)}`, {
     headers: {
@@ -41,6 +94,16 @@ module.exports.createListings = async (req, res) => {
   console.log(lat, lon); // optional for debug
 
   // Setup image
+=======
+  // Setup image
+  if (!req.file) {
+    throw new ExpressError(400, "Listing image is required");
+  }
+
+  // Geocoding should not block saving the listing in production.
+  const geometry = await getListingGeometry(req.body.listing.location);
+
+>>>>>>> 1396a3e (Fix listing creation on deploy)
   let url = req.file.path;
   let filename = req.file.filename;
 
@@ -78,7 +141,19 @@ module.exports.renderEditForm = async (req, res) => {
 module.exports.updateListing = async (req, res) => {
   let { id } = req.params;
 
+<<<<<<< HEAD
   let listing = await Listing.findByIdAndUpdate(id, { ...req.body.listing });
+=======
+  let listing = await Listing.findById(id);
+  const locationChanged = req.body.listing.location !== listing.location;
+
+  Object.assign(listing, req.body.listing);
+
+  if (locationChanged) {
+    listing.geometry = await getListingGeometry(req.body.listing.location);
+  }
+
+>>>>>>> 1396a3e (Fix listing creation on deploy)
   if (typeof req.file !== "undefined") {
     let url = req.file.path;
     let filename = req.file.filename;
