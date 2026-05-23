@@ -88,12 +88,17 @@ app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRouter);
 app.use("/", userRouter);
 
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end();
+});
+
 app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found!"));
 });
 
 //error handling midlleware
 app.use((err, req, res, next) => {
+  console.error(err);
   let { statusCode = 500, message = "Something Went Wrong!" } = err;
   //res.status(status).send(message)
   res.status(statusCode).render("./listings/error.ejs", { message });
